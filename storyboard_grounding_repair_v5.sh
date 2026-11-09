@@ -75,7 +75,9 @@ def _grounded_action(action, script, quote=""):
       "追查到废弃医院": ("追查到废弃医院",),
       "发现神秘人": ("发现一个神秘人",),
       "神秘人转头对陈默说话": ("神秘人转头看着陈默",),
+      "转头对陈默说话": ("神秘人转头看着陈默",),
       "神秘人微笑说话": ("神秘人微笑",),
+      "微笑说话": ("神秘人微笑",),
     }
     for phrase, needles in mappings.items():
         if c == phrase and all(x in src for x in needles):
