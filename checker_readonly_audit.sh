@@ -79,7 +79,64 @@ PY
   echo "===== 只读审查结束 ====="
 } > "$REPORT" 2>&1
 
-echo "===== 报告生成成功 ====="
+echo "===== 完整报告已保存 ====="
 echo "$REPORT"
-echo "===== 正在打开 Android 分享面板 ====="
-cat "$REPORT" | termux-share -a send -c text/plain
+
+# 生成短版分享摘要；完整报告仍保留在原路径
+SUMMARY="${REPORT%.txt}_分享摘要.txt"
+python - "$SRC" "$RESULT" "$REPORT" "$SUMMARY" "$EXPECTED_SHA" <<'PY'
+import ast, json, os, re, sys
+src, result_dir, report, summary, expected = sys.argv[1:]
+out = []
+def add(s=""):
+    out.append(str(s))
+actual = __import__("hashlib").sha256(open(src,"rb").read()).hexdigest()
+add("===== AnimeAI_B 分镜验收器只读审查摘要 =====")
+add("源码SHA256: " + actual)
+add("预期SHA256: " + expected)
+add("源码版本核对: " + ("一致" if actual == expected else "不一致"))
+add("源码行数: " + str(sum(1 for _ in open(src,encoding="utf-8"))))
+add("完整报告: " + report)
+add()
+add("===== 相关函数/类（名称与行号） =====")
+tree = ast.parse(open(src,encoding="utf-8").read())
+keys = ("storyboard","check","valid","audit","event")
+nodes = [n for n in ast.walk(tree) if isinstance(n,(ast.FunctionDef,ast.AsyncFunctionDef,ast.ClassDef)) and any(k in n.name.lower() for k in keys)]
+for n in sorted(nodes,key=lambda x:x.lineno):
+    add(f"{n.name}: 第{n.lineno}-{getattr(n,'end_lineno',n.lineno)}行")
+if not nodes: add("未找到匹配定义")
+add()
+add("===== 关键规则代码位置（每条限长） =====")
+patterns = re.compile(r"动作/画面/声音依据|原文依据|storyboard_checks|forbidden_additions|event_order|连续原文|分镜事件覆盖|画面.*依据|声音.*依据")
+hits = []
+for i,line in enumerate(open(src,encoding="utf-8"),1):
+    if patterns.search(line):
+        hits.append(f"{i}: {line.strip()[:180]}")
+for line in hits[:18]: add(line)
+if len(hits)>18: add(f"其余匹配行省略: {len(hits)-18}条（完整报告中保留上下文）")
+add()
+add("===== 三轮真实模型验收 JSON 摘要 =====")
+for i in range(1,4):
+    p=os.path.join(result_dir,"storyboard",f"program_check_attempt_{i}.json")
+    add(f"--- 第{i}轮: {p} ---")
+    if not os.path.isfile(p):
+        add("文件缺失")
+        continue
+    try:
+        obj=json.load(open(p,encoding="utf-8"))
+        compact=json.dumps(obj,ensure_ascii=False,separators=(",",":"))
+        add(compact[:1500] + ("...[内容截断，完整内容见本地完整报告]" if len(compact)>1500 else ""))
+    except Exception as e:
+        add("JSON读取失败: "+repr(e))
+add()
+add("说明: 本摘要为便于分享而压缩；完整报告没有删除。脚本只读，未修改源码、未调用模型。")
+data="\n".join(out)+"\n"
+if len(data)>8500:
+    data=data[:8500]+"\n[摘要达到长度上限，后续内容省略；完整报告仍在本地]\n"
+open(summary,"w",encoding="utf-8").write(data)
+print("分享摘要字符数:",len(data))
+print("分享摘要路径:",summary)
+PY
+
+echo "===== 正在分享精简摘要（完整报告保留在本地） ====="
+cat "$SUMMARY" | termux-share -a send -c text/plain
