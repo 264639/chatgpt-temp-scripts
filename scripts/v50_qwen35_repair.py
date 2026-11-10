@@ -138,7 +138,7 @@ append_report(f"时间：{time.strftime('%Y-%m-%d %H:%M:%S')}")
 append_report(f"项目：{ROOT}")
 append_report(f"引擎：{ENGINE}")
 append_report(f"模型：{MODEL}")
-append_report(f"模型SHA256：{sha(MODEL)}")
+append_report(f"模型文件大小：{MODEL.stat().st_size} bytes（不重复全量扫描2.7GB模型）")
 append_report("保护：不删除 data/model_fault.json；不修改模型文件；不触碰 AnimeAI_A/B")
 
 help_run = subprocess.run([str(ENGINE), "--help"], cwd=str(ROOT), capture_output=True, text=True, timeout=30)
@@ -167,7 +167,7 @@ if selected is None:
     if shutil.which("gdb"):
         ctx, batch, ubatch, threads, label = probes[-1]
         cmd = probe_command(ENGINE, MODEL, ctx, batch, ubatch, threads, no_repack)
-        gdb_cmd = [shutil.which("gdb"), "--batch", "-ex", "set pagination off", "-ex", "run", "-ex", "thread apply all bt full", "--args", *cmd]
+        gdb_cmd = [shutil.which("gdb"), "--batch", "-ex", "set pagination off", "-ex", "set debuginfod enabled off", "-ex", "run", "-ex", "thread apply all bt full", "--args", *cmd]
         code, out, err = run_probe(gdb_cmd, timeout=600)
         append_report("\n--- GDB回溯 ---\n" + (out + "\n" + err)[-12000:])
     else:
