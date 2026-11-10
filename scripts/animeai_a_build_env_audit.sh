@@ -53,17 +53,17 @@ ninja --version 2>&1 || true
 clang --version 2>&1 | head -2 || true
 
 section "NDK DISCOVERY"
-for base in "$ANDROID_NDK_HOME" "$ANDROID_NDK_ROOT" "$NDK_HOME" "$ANDROID_HOME/ndk" "$ANDROID_SDK_ROOT/ndk" "$HOME/Android/Sdk/ndk" "$HOME"; do
+for base in "${ANDROID_NDK_HOME:-}" "${ANDROID_NDK_ROOT:-}" "${NDK_HOME:-}" "${ANDROID_HOME:-}/ndk" "${ANDROID_SDK_ROOT:-}/ndk" "$HOME/Android/Sdk/ndk" "$HOME"; do
   [ -n "${base:-}" ] && [ -d "$base" ] || continue
   find "$base" -maxdepth 5 -type f -name source.properties 2>/dev/null | head -20
 done
 
 section "OPENCL AND GPU RUNTIME EVIDENCE"
-for p in /system/vendor/lib64 /vendor/lib64 /system/lib64 /data/data/com.termux/files/usr/lib "$PREFIX/lib"; do
+for p in /system/vendor/lib64 /vendor/lib64 /system/lib64 /data/data/com.termux/files/usr/lib "${PREFIX:-/data/data/com.termux/files/usr}/lib"; do
   [ -d "$p" ] || continue
   find "$p" -maxdepth 2 -type f \( -iname '*opencl*' -o -iname '*adreno*' -o -iname '*vulkan*' \) 2>/dev/null | head -40
 done
-for p in /system/vendor/etc /vendor/etc "$PREFIX/include"; do
+for p in /system/vendor/etc /vendor/etc "${PREFIX:-/data/data/com.termux/files/usr}/include"; do
   [ -d "$p" ] || continue
   find "$p" -maxdepth 4 -type f \( -iname 'CL*.h' -o -iname 'opencl*.h' \) 2>/dev/null | head -30
 done
