@@ -105,4 +105,4 @@ echo "PYTHON_DEVICE_PROBE_EXIT=$PY_RC"
 echo "SD_LIST_DEVICES_EXIT=$SD_RC"
 echo "REPORT=$REPORT"
 echo "Read-only probe. No source, build, environment, or system files modified."
-termux-share -a send -c text/plain < "$REPORT"
+cat "$REPORT" | termux-share -a send -c text/plain
